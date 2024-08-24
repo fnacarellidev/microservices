@@ -19,6 +19,6 @@ RUN --mount=type=cache,target=/go-cache go build -o app
 
 FROM scratch
 
-COPY --from=builder /go/app/auth/app .
+COPY --from=builder /go/app/auth/app /go/app/hs256secret.txt .
 
 ENTRYPOINT ["./app"]

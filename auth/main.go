@@ -22,27 +22,8 @@ type User struct {
 	Password string `json:"password"`
 }
 
-func validateToken(tok string) (*jwt.Token, error) {
-	secret, err := os.ReadFile("auth/hs256secret.txt")
-	if err != nil {
-		return nil, fmt.Errorf("[generateToken] read file err %v\n", err)
-	}
-
-	token, err := jwt.Parse(tok, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return secret, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return token, nil
-}
-
 func generateToken(user User) (string, error) {
-	secret, _ := os.ReadFile("auth/hs256secret.txt")
+	secret, _ := os.ReadFile("hs256secret.txt")
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": user.Username,
 		"iat": time.Now().Unix(),
@@ -144,7 +125,14 @@ func Login(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
-	w.Write([]byte(token))
+	jwtCookie := http.Cookie{
+		Name: "jwt",
+		Value: token,
+		HttpOnly: true,
+		Secure: false,
+		SameSite: http.SameSiteDefaultMode,
+	}
+	http.SetCookie(w, &jwtCookie)
 }
 
 func main() {
