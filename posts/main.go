@@ -1,14 +1,23 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/fnacarellidev/microsservices/.sqlcbuild/pgquery"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/julienschmidt/httprouter"
 )
+
+type Post struct {
+	Content  string `json:"content"`
+}
 
 func getToken(tok string) (*jwt.Token, error) {
 	secret, err := os.ReadFile("hs256secret.txt")
@@ -29,7 +38,18 @@ func getToken(tok string) (*jwt.Token, error) {
 	return token, nil
 }
 
-func GetPosts(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func CreatePost(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var post Post
+	ctx := context.Background()
+	conn, err := pgx.Connect(ctx, os.Getenv("DB_URL"))
+	if err != nil {
+		log.Println("[CreatePost] Failed at pgx.Connect:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	defer conn.Close(ctx)
+	queries := pgquery.New(conn)
 	cookie, err := r.Cookie("jwt")
 	if err != nil {
 		log.Println("[GetPosts] Failed at r.Cookie:", err)
@@ -44,13 +64,36 @@ func GetPosts(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Println("[GetPosts] Failed at io.ReadAll:", err)
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	if err := json.Unmarshal(bodyBytes, &post); err != nil {
+		log.Println("[GetPosts] Failed at json.Unmarshal:", err)
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
 	tokenMap, _ := token.Claims.(jwt.MapClaims)
-	log.Println(tokenMap["username"])
+	id, err := queries.CreatePost(ctx, pgquery.CreatePostParams{
+		PostOwner: tokenMap["username"].(string),
+		Content: post.Content,
+	})
+	if err != nil {
+		log.Println("[GetPosts] Failed at queries.CreatePost:", err)
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	w.Write([]byte(id.String()))
 }
 
 func main() {
 	router := httprouter.New()
-	router.POST("/posts/mine", GetPosts)
+	router.POST("/posts/create", CreatePost)
 	log.Println("Running on port 8081")
 	http.ListenAndServe(":8081", router)
 }

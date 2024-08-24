@@ -7,3 +7,10 @@ INSERT INTO users (
 
 -- name: GetPasswordFromUser :one
 SELECT password FROM users WHERE username = $1;
+
+-- name: CreatePost :one
+INSERT INTO posts (
+	post_owner, content
+) VALUES (
+	$1, $2
+) RETURNING id;
