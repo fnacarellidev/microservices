@@ -8,13 +8,11 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/fnacarellidev/microsservices/.sqlcbuild/pgquery"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -91,24 +89,57 @@ func Register(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	query := pgquery.New(conn)
 	_, err = query.CreateUser(ctx, pgquery.CreateUserParams{
-		Username: pgtype.Text{
-			String: user.Username,
-			Valid: true,
-		},
-		Password: pgtype.Text{
-			String: string(hashedPassword),
-			Valid: true,
-		},
+		Username: user.Username,
+		Password: string(hashedPassword),
 	})
 	if err != nil {
 		log.Println("Failed to create user:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+}
+
+func Login(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var user User
+	ctx := context.Background()
+	conn, err := pgx.Connect(ctx, os.Getenv("DB_URL"))
+	if err != nil {
+		log.Println("[LOGIN] pgx.Connect:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	defer conn.Close(ctx)
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Println("[LOGIN] io.ReadAll:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err := json.Unmarshal(bodyBytes, &user); err != nil {
+		log.Println("[LOGIN] json.Unmarshal:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	queries := pgquery.New(conn)
+	hashedPassword, err := queries.GetPasswordFromUser(ctx, user.Username)
+	if err != nil {
+		log.Println("[LOGIN] queries.GetPasswordFromUser:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(user.Password)); err != nil {
+		log.Println("[LOGIN] bcrypt.CompareHashAndPassword:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	token, err := generateToken(user)
 	if err != nil {
-		log.Println("Failed to generate token:", err)
+		log.Println("[LOGIN] jwtaux.GenerateToken:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -116,30 +147,10 @@ func Register(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	w.Write([]byte(token))
 }
 
-func Login(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	jwtBearer, found := strings.CutPrefix(r.Header["Authorization"][0], "Bearer ")
-	if !found {
-		w.Write([]byte("No JWT provided"))
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	token, err := validateToken(jwtBearer)
-	if err != nil {
-		w.Write([]byte("Unauthorized"))
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		log.Println("Logged in successfully as", claims["username"])
-	}
-}
-
 func main() {
-	log.Println(os.Getenv("DB_URL"))
 	router := httprouter.New()
-	router.GET("/auth/register", Register)
-	router.GET("/auth/login", Login)
+	router.POST("/auth/register", Register)
+	router.POST("/auth/login", Login)
+	log.Println("Running on port 8080")
 	http.ListenAndServe(":8080", router)
 }
