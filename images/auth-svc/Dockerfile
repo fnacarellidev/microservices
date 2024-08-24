@@ -17,7 +17,7 @@ WORKDIR /go/app/auth
 RUN --mount=type=cache,target=/gomod-cache go mod download
 RUN --mount=type=cache,target=/go-cache go build -o app
 
-FROM bash:latest
+FROM scratch
 
 COPY --from=builder /go/app/auth/app .
 
