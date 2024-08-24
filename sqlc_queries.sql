@@ -4,3 +4,6 @@ INSERT INTO users (
 ) VALUES (
 	$1, $2
 ) RETURNING id;
+
+-- name: GetPasswordFromUser :one
+SELECT password FROM users WHERE username = $1;
