@@ -1,0 +1,41 @@
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: microsservices
+
+portForward:
+- resourceType: deployment
+  resourceName: auth-svc
+  port: 8080
+  address: 0.0.0.0
+- resourceType: deployment
+  resourceName: postgres
+  port: 5432
+  address: 0.0.0.0
+
+profiles:
+- name: preview
+  activation:
+  - command: dev
+  manifests:
+    kustomize:
+      paths:
+      - overlays/preview/
+  deploy:
+    kubeContext: kind-microsservices
+    kubectl:
+      defaultNamespace: default
+  build:
+    local:
+      push: false
+      useBuildkit: true
+      concurrency: 32
+    artifacts:
+    - image: gcr.io/microsservices/auth-image
+      context: .
+      docker:
+        dockerfile: images/auth-svc/Dockerfile
+    - image: gcr.io/microsservices/postgres
+      context: .
+      docker:
+        dockerfile: images/postgres/Dockerfile

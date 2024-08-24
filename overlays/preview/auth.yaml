@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-svc
+  namespace: default
+  labels:
+    app: auth-svc
+spec:
+  selector:
+    matchLabels:
+      app: auth-svc
+  replicas: 1
+  strategy:
+  template:
+    metadata:
+      labels:
+        app: auth-svc
+    spec:
+      containers:
+      - name: auth-svc
+        image: gcr.io/microsservices/auth-image:latest
+        imagePullPolicy: Never
+        env:
+          - name: DB_URL
+            value: "postgresql://postgres:postgres@postgres:5432/"

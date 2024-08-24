@@ -19,8 +19,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const DbUrl = "postgresql://postgres:postgres@localhost:5432"
-
 type User struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -62,7 +60,7 @@ func generateToken(user User) (string, error) {
 func Register(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var user User
 	ctx := context.Background()
-	conn, err := pgx.Connect(ctx, DbUrl)
+	conn, err := pgx.Connect(ctx, os.Getenv("DB_URL"))
 	if err != nil {
 		log.Println("Failed at db connection:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -119,14 +117,6 @@ func Register(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 func Login(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	ctx := context.Background()
-	_, err := pgx.Connect(ctx, DbUrl)
-	if err != nil {
-		log.Println("Failed at db connection:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	jwtBearer, found := strings.CutPrefix(r.Header["Authorization"][0], "Bearer ")
 	if !found {
 		w.Write([]byte("No JWT provided"))
@@ -147,6 +137,7 @@ func Login(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 func main() {
+	log.Println(os.Getenv("DB_URL"))
 	router := httprouter.New()
 	router.GET("/auth/register", Register)
 	router.GET("/auth/login", Login)
