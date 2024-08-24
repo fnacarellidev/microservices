@@ -9,6 +9,10 @@ portForward:
   port: 8080
   address: 0.0.0.0
 - resourceType: deployment
+  resourceName: posts-svc
+  port: 8081
+  address: 0.0.0.0
+- resourceType: deployment
   resourceName: postgres
   port: 5432
   address: 0.0.0.0
@@ -35,6 +39,10 @@ profiles:
       context: .
       docker:
         dockerfile: images/auth-svc/Dockerfile
+    - image: gcr.io/microsservices/posts-image
+      context: .
+      docker:
+        dockerfile: images/posts-svc/Dockerfile
     - image: gcr.io/microsservices/postgres
       context: .
       docker:

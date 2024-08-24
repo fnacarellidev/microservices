@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: posts-svc
+  namespace: default
+  labels:
+    app: posts-svc
+spec:
+  selector:
+    matchLabels:
+      app: posts-svc
+  replicas: 1
+  strategy:
+  template:
+    metadata:
+      labels:
+        app: posts-svc
+    spec:
+      containers:
+      - name: posts-svc
+        image: gcr.io/microsservices/posts-image:latest
+        imagePullPolicy: Never
+        env:
+          - name: DB_URL
+            value: "postgresql://postgres:postgres@postgres:5432/"
