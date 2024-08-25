@@ -11,7 +11,6 @@ import (
 	"github.com/fnacarellidev/microsservices/.sqlcbuild/pgquery"
 	"github.com/fnacarellidev/microsservices/posts/api"
 	"github.com/fnacarellidev/microsservices/posts/jwtaux"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/julienschmidt/httprouter"
 )
@@ -28,20 +27,6 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 
 	defer conn.Close(ctx)
 	queries := pgquery.New(conn)
-	cookie, err := r.Cookie("jwt")
-	if err != nil {
-		log.Println("[GetPosts] Failed at r.Cookie:", err)
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-
-	token, err := jwtaux.GetToken(cookie.Value)
-	if err != nil {
-		log.Println("[GetPosts] Failed at r.Cookie:", err)
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Println("[GetPosts] Failed at io.ReadAll:", err)
@@ -55,9 +40,14 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		return
 	}
 
-	tokenMap, _ := token.Claims.(jwt.MapClaims)
+	decodedJwt, err := jwtaux.GetDecodedJwtFromCookieHeader(r)
+	if err != nil {
+		log.Println("[CreatePost] Failed at jwtaux.GetDecodedJwtFromCookieHeader:", err)
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
 	id, err := queries.CreatePost(ctx, pgquery.CreatePostParams{
-		PostOwner: tokenMap["username"].(string),
+		PostOwner: decodedJwt["username"].(string),
 		Content: post.Content,
 	})
 	if err != nil {
@@ -66,5 +56,17 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		return
 	}
 
-	w.Write([]byte(id.String()))
+	res := struct {
+		Id string `json:"id"`
+	}{
+		Id: id.String(),
+	}
+	body, err := json.Marshal(res)
+	if err != nil {
+		log.Println("[GetPosts] Failed at json.Marshal:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(body)
 }

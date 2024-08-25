@@ -10,7 +10,6 @@ import (
 	"github.com/fnacarellidev/microsservices/.sqlcbuild/pgquery"
 	"github.com/fnacarellidev/microsservices/posts/api"
 	"github.com/fnacarellidev/microsservices/posts/jwtaux"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/julienschmidt/httprouter"
 )
@@ -27,22 +26,14 @@ func GetPostsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params
 
 	defer conn.Close(ctx)
 	queries := pgquery.New(conn)
-	cookie, err := r.Cookie("jwt")
+	decodedJwt, err := jwtaux.GetDecodedJwtFromCookieHeader(r)
 	if err != nil {
-		log.Println("[GetPosts] Failed at r.Cookie:", err)
+		log.Println("[GetPosts] Failed at jwtaux.GetDecodedJwtFromCookieHeader:", err)
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
-	token, err := jwtaux.GetToken(cookie.Value)
-	if err != nil {
-		log.Println("[GetPosts] Failed at r.Cookie:", err)
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-
-	tokenMap, _ := token.Claims.(jwt.MapClaims)
-	posts, err := queries.GetPostsFromUser(ctx, tokenMap["username"].(string))
+	posts, err := queries.GetPostsFromUser(ctx, decodedJwt["username"].(string))
 	if err != nil {
 		log.Println("[GetPosts] Failed at queries.GetPostsFromUser:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -51,6 +42,7 @@ func GetPostsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params
 
 	for _, post := range posts {
 		getPostsRes.Posts = append(getPostsRes.Posts, api.Post{
+			Id: post.ID.String(),
 			Content: post.Content,
 			CreatedAt: post.CreatedAt.Time,
 		})
