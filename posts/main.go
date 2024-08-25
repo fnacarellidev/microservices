@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/fnacarellidev/microsservices/.sqlcbuild/pgquery"
 	"github.com/golang-jwt/jwt/v5"
@@ -16,7 +17,12 @@ import (
 )
 
 type Post struct {
-	Content  string `json:"content"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+}
+
+type GetPostsRes struct {
+	Posts []Post `json:"posts"`
 }
 
 func getToken(tok string) (*jwt.Token, error) {
@@ -36,6 +42,57 @@ func getToken(tok string) (*jwt.Token, error) {
 	}
 
 	return token, nil
+}
+
+func GetPosts(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var getPostsRes GetPostsRes
+	ctx := context.Background()
+	conn, err := pgx.Connect(ctx, os.Getenv("DB_URL"))
+	if err != nil {
+		log.Println("[GetPosts] Failed at pgx.Connect:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	defer conn.Close(ctx)
+	queries := pgquery.New(conn)
+	cookie, err := r.Cookie("jwt")
+	if err != nil {
+		log.Println("[GetPosts] Failed at r.Cookie:", err)
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	token, err := getToken(cookie.Value)
+	if err != nil {
+		log.Println("[GetPosts] Failed at r.Cookie:", err)
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	tokenMap, _ := token.Claims.(jwt.MapClaims)
+	posts, err := queries.GetPostsFromUser(ctx, tokenMap["username"].(string))
+	if err != nil {
+		log.Println("[GetPosts] Failed at queries.GetPostsFromUser:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	for _, post := range posts {
+		getPostsRes.Posts = append(getPostsRes.Posts, Post{
+			Content: post.Content,
+			CreatedAt: post.CreatedAt.Time,
+		})
+	}
+
+	body, err := json.Marshal(getPostsRes)
+	if err != nil {
+		log.Println("[GetPosts] Failed at json.Marshal:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(body)
 }
 
 func CreatePost(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -93,6 +150,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 func main() {
 	router := httprouter.New()
+	router.GET("/posts/mine", GetPosts)
 	router.POST("/posts/create", CreatePost)
 	log.Println("Running on port 8081")
 	http.ListenAndServe(":8081", router)
