@@ -16,4 +16,7 @@ INSERT INTO posts (
 ) RETURNING id;
 
 -- name: GetPostsFromUser :many
-SELECT content, created_at FROM posts WHERE post_owner = $1;
+SELECT id, content, created_at FROM posts WHERE post_owner = $1;
+
+-- name: DeletePostById :exec
+DELETE FROM posts WHERE id = $1;
