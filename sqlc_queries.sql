@@ -8,15 +8,9 @@ INSERT INTO users (
 -- name: GetPasswordFromUser :one
 SELECT password FROM users WHERE username = $1;
 
--- name: CreatePost :one
-INSERT INTO posts (
-	post_owner, content
-) VALUES (
-	$1, $2
-) RETURNING id;
-
--- name: GetPostsFromUser :many
-SELECT id, content, created_at FROM posts WHERE post_owner = $1;
-
--- name: DeletePostById :exec
-DELETE FROM posts WHERE id = $1;
+-- name: GetRecordsFromUser :many
+SELECT r.id, r.title, r.content, r.created_at
+FROM users u
+JOIN diary d ON u.id = d.diary_owner
+JOIN records r ON d.id = r.diary_id
+WHERE u.username = $1;

@@ -1,15 +1,23 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE users (
-        id       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+		id       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 		username VARCHAR(16) UNIQUE NOT NULL,
 		password TEXT NOT NULL
 );
 
-CREATE TABLE posts (
-        id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-		post_owner VARCHAR(16) NOT NULL,
-		content    TEXT NOT NULL,
-		created_at TIMESTAMP DEFAULT NOW(),
-		FOREIGN KEY (post_owner) REFERENCES users(username) ON DELETE CASCADE
+CREATE TABLE diary (
+	id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+	diary_owner UUID NOT NULL,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (diary_owner) REFERENCES users(id) ON DELETE CASCADE
+)
+
+CREATE TABLE records (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+	diary_id UUID NOT NULL,
+  title TEXT NOT NULL,
+	content TEXT NOT NULL,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (diary_id) REFERENCES diary(id) ON DELETE CASCADE
 );
