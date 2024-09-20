@@ -9,7 +9,7 @@ portForward:
   port: 8080
   address: 0.0.0.0
 - resourceType: deployment
-  resourceName: posts-svc
+  resourceName: diary-svc
   port: 8081
   address: 0.0.0.0
 - resourceType: deployment
@@ -39,10 +39,10 @@ profiles:
       context: .
       docker:
         dockerfile: images/auth-svc/Dockerfile
-    - image: gcr.io/microsservices/posts-image
+    - image: gcr.io/microsservices/diary-image
       context: .
       docker:
-        dockerfile: images/posts-svc/Dockerfile
+        dockerfile: images/diary-svc/Dockerfile
     - image: gcr.io/microsservices/postgres
       context: .
       docker:

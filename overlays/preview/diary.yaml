@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: posts-svc
+  name: diary-svc
   namespace: default
   labels:
-    app: posts-svc
+    app: diary-svc
 spec:
   selector:
     matchLabels:
-      app: posts-svc
+      app: diary-svc
   replicas: 1
   strategy:
   template:
     metadata:
       labels:
-        app: posts-svc
+        app: diary-svc
     spec:
       containers:
-      - name: posts-svc
-        image: gcr.io/microsservices/posts-image:latest
+      - name: diary-svc
+        image: gcr.io/microsservices/diary-image:latest
         imagePullPolicy: Never
         env:
           - name: DB_URL

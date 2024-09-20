@@ -35,6 +35,14 @@ async function registerUser(e: FormSubmitEvent<RegistrationSchema>) {
   })
 }
 
+async function getRecords() {
+  const response = await $fetch('http://localhost:8081/diary/my_records', {
+    method: 'GET',
+    credentials: 'include'
+  })
+}
+
+
 onMounted(() => {
   console.log(document.cookie)
 })
@@ -71,5 +79,8 @@ onMounted(() => {
         Register
       </UButton>
     </UForm>
+    <UButton @click="getRecords">
+      Get Records
+    </UButton>
   </div>
 </template>

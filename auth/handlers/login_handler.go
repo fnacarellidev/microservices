@@ -80,7 +80,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	jwtCookie := http.Cookie{
 		Name:     "jwt",
 		Value:    token,
-		HttpOnly: true,
+		HttpOnly: false,
 		Expires:  time.Now().Add(7 * 24 * time.Hour).UTC(),
 		Secure:   false,
 		Path:     "/",

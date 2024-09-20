@@ -9,12 +9,12 @@ RUN go env -w GOMODCACHE=/gomod-cache
 
 COPY . .
 
-WORKDIR /go/app/posts
+WORKDIR /go/app/diary
 RUN --mount=type=cache,target=/gomod-cache go mod download
 RUN --mount=type=cache,target=/go-cache go build -o app
 
 FROM bash
 
-COPY --from=builder /go/app/posts/app /go/app/hs256secret.txt .
+COPY --from=builder /go/app/diary/app /go/app/hs256secret.txt .
 
 ENTRYPOINT ["./app"]
