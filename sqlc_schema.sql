@@ -11,7 +11,7 @@ CREATE TABLE diary (
 	diary_owner UUID NOT NULL,
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY (diary_owner) REFERENCES users(id) ON DELETE CASCADE
-)
+);
 
 CREATE TABLE records (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
