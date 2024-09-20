@@ -22,7 +22,7 @@ func generateToken(user api.User) (string, error) {
 	secret, _ := os.ReadFile("hs256secret.txt")
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": user.Username,
-		"iat": time.Now().Unix(),
+		"iat":      time.Now().Unix(),
 	})
 	tokenString, err := token.SignedString(secret)
 	if err != nil {
@@ -78,10 +78,12 @@ func LoginHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	jwtCookie := http.Cookie{
-		Name: "jwt",
-		Value: token,
+		Name:     "jwt",
+		Value:    token,
 		HttpOnly: true,
-		Secure: false,
+		Expires:  time.Now().Add(7 * 24 * time.Hour).UTC(),
+		Secure:   false,
+		Path:     "/",
 		SameSite: http.SameSiteDefaultMode,
 	}
 	http.SetCookie(w, &jwtCookie)
