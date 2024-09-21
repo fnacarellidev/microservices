@@ -12,7 +12,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func CreateRecord(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func CreateDiary(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := context.Background()
 	conn, err := pgx.Connect(ctx, os.Getenv("DB_URL"))
 	if err != nil {
@@ -36,21 +36,8 @@ func CreateRecord(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-
-	diary, err := queries.GetDiaryFromUser(ctx, userId)
-	if err != nil {
-		log.Println("[GetRecords] Failed at GetDiaryFromUser:", err)
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-
-	err = queries.CreateRecordOnUserDiary(ctx, pgquery.CreateRecordOnUserDiaryParams{
-		DiaryID: diary.ID,
-		Title: "Fixed title",
-		Content: "Fixed content",
-	})
-	if err != nil {
-		log.Println("[GetRecords] Failed at CreateRecordOnUserDiary:", err)
+	if err := queries.CreateDiaryForUser(ctx, userId); err != nil {
+		log.Println("[GetRecords] Failed at CreateDiaryForUser:", err)
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}

@@ -11,7 +11,8 @@ import (
 func main() {
 	router := httprouter.New()
 	router.GET("/diary/my_records", handlers.GetRecords)
-	// router.DELETE("/diary/:id", handlers.DeletePostHandler)
+	router.POST("/diary/create_record", handlers.CreateRecord)
+	router.POST("/diary/create_diary", handlers.CreateDiary)
 	log.Println("Running on port 8081")
 	http.ListenAndServe(":8081", router)
 }

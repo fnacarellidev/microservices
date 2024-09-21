@@ -12,6 +12,32 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createDiaryForUser = `-- name: CreateDiaryForUser :exec
+INSERT INTO diary (diary_owner)
+VALUES ($1)
+`
+
+func (q *Queries) CreateDiaryForUser(ctx context.Context, diaryOwner uuid.UUID) error {
+	_, err := q.db.Exec(ctx, createDiaryForUser, diaryOwner)
+	return err
+}
+
+const createRecordOnUserDiary = `-- name: CreateRecordOnUserDiary :exec
+INSERT INTO records (diary_id, title, content)
+VALUES ($1, $2, $3)
+`
+
+type CreateRecordOnUserDiaryParams struct {
+	DiaryID uuid.UUID
+	Title   string
+	Content string
+}
+
+func (q *Queries) CreateRecordOnUserDiary(ctx context.Context, arg CreateRecordOnUserDiaryParams) error {
+	_, err := q.db.Exec(ctx, createRecordOnUserDiary, arg.DiaryID, arg.Title, arg.Content)
+	return err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
 	username, password
@@ -27,6 +53,31 @@ type CreateUserParams struct {
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Password)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const getDiaryFromUser = `-- name: GetDiaryFromUser :one
+SELECT d.id, d.diary_owner, d.created_at
+FROM diary d
+JOIN users u ON d.diary_owner = u.id
+WHERE u.id = $1
+`
+
+func (q *Queries) GetDiaryFromUser(ctx context.Context, id uuid.UUID) (Diary, error) {
+	row := q.db.QueryRow(ctx, getDiaryFromUser, id)
+	var i Diary
+	err := row.Scan(&i.ID, &i.DiaryOwner, &i.CreatedAt)
+	return i, err
+}
+
+const getIdFromUser = `-- name: GetIdFromUser :one
+SELECT id FROM users WHERE username = $1
+`
+
+func (q *Queries) GetIdFromUser(ctx context.Context, username string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getIdFromUser, username)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
