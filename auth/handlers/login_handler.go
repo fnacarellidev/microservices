@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/fnacarellidev/microsservices/.sqlcbuild/pgquery"
 	"github.com/fnacarellidev/microsservices/auth/api"
+	"github.com/fnacarellidev/microsservices/logger"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/julienschmidt/httprouter"
@@ -37,7 +37,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := context.Background()
 	conn, err := pgx.Connect(ctx, os.Getenv("DB_URL"))
 	if err != nil {
-		log.Println("[LOGIN] pgx.Connect:", err)
+		logger.ErrorLog("[LOGIN] pgx.Connect:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -45,13 +45,13 @@ func LoginHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	defer conn.Close(ctx)
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Println("[LOGIN] io.ReadAll:", err)
+		logger.ErrorLog("[LOGIN] io.ReadAll:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err := json.Unmarshal(bodyBytes, &user); err != nil {
-		log.Println("[LOGIN] json.Unmarshal:", err)
+		logger.ErrorLog("[LOGIN] json.Unmarshal:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -59,20 +59,20 @@ func LoginHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	queries := pgquery.New(conn)
 	hashedPassword, err := queries.GetPasswordFromUser(ctx, user.Username)
 	if err != nil {
-		log.Println("[LOGIN] queries.GetPasswordFromUser:", err)
+		logger.ErrorLog("[LOGIN] queries.GetPasswordFromUser:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(user.Password)); err != nil {
-		log.Println("[LOGIN] bcrypt.CompareHashAndPassword:", err)
+		logger.ErrorLog("[LOGIN] bcrypt.CompareHashAndPassword:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	token, err := generateToken(user)
 	if err != nil {
-		log.Println("[LOGIN] jwtaux.GenerateToken:", err)
+		logger.ErrorLog("[LOGIN] jwtaux.GenerateToken:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

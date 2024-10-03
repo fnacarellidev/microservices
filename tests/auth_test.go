@@ -82,5 +82,6 @@ func (suite *AuthTestSuite) Test002Login() {
 }
 
 func TestAuthSuite(t *testing.T) {
+	os.Setenv("GO_TESTING", "")
 	suite.Run(t, new(AuthTestSuite))
 }
