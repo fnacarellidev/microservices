@@ -24,12 +24,12 @@ jobs:
         run: go install gotest.tools/gotestsum@v1.12.0
 
       - name: Run Gotestsum
-        run: gotestsum -f github-actions --junitfile reports/report.xml -- ./tests
+        run: gotestsum -f github-actions --junitfile report.xml -- ./tests
       
       - name: Render Test Report
         uses: dorny/test-reporter@v1
         if: success() || failure()
         with:
           name: JEST Tests
-          path: reports/*.xml
+          path: report.xml
           reporter: jest-junit
