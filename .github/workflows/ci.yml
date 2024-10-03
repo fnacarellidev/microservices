@@ -11,20 +11,14 @@ jobs:
       DOCKER_BUILDKIT: 1
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
 
-      - name: Create Docker network for running Testcontianers
+      - name: Setup Docker Network for Testcontainers
         run: docker network create ${{ env.TESTCONTAINER_DOCKER_NETWORK }}
 
       - name: Test go version
         run: go version
 
-      # - name: Set up Docker Buildx
-      #   uses: docker/setup-buildx-action@v3
-
-      # - name: Build Docker image - Release
-      #   uses: docker/build-push-action@v5
-      #   with:
-      #     target: release
-      #     load: true
+      - name: Run tests
+        working-directory: 
+        run: go test -v ./tests
