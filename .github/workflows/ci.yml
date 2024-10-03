@@ -3,10 +3,13 @@ name: Build and test - on CI server
 on:
   push:
 
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 jobs:
   build:
-    permissions:
-      contents: read
     runs-on: ubuntu-latest
     env:
       TESTCONTAINER_DOCKER_NETWORK: tomodachi-testcontainers
