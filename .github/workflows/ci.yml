@@ -28,6 +28,9 @@ jobs:
       - name: Run Gotestsum
         run: gotestsum -f github-actions --junitfile report.xml -- ./tests
       
+      - name: DEBUG
+        run: ls
+
       - name: Render Test Report
         uses: dorny/test-reporter@v1
         if: success() || failure()
