@@ -9,31 +9,52 @@ import (
 	"testing"
 
 	"github.com/fnacarellidev/microsservices/auth/handlers"
+	"github.com/fnacarellidev/microsservices/diary/jwtaux"
 	"github.com/fnacarellidev/microsservices/tests/testutil"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
 type AuthTestSuite struct {
 	suite.Suite
-	pgContainer *testutil.PostgresContainer
-	router      *httprouter.Router
-	jwt         string
+	pgContainer   *testutil.PostgresContainer
+	router        *httprouter.Router
+	jwtCookie     *http.Cookie
+	tempHS256File *os.File
 }
 
 func (suite *AuthTestSuite) SetupSuite() {
 	var err error
 
+	os.Setenv("GO_TESTING", "")
+	suite.tempHS256File, err = os.Create("hs256secret.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	suite.jwtCookie = nil
 	suite.router = httprouter.New()
-	suite.router.POST("/auth/register", handlers.RegisterHandler)
+	suite.tempHS256File.Write([]byte("mockedhs256"))
 	suite.router.POST("/auth/login", handlers.LoginHandler)
+	suite.router.POST("/auth/register", handlers.RegisterHandler)
 	suite.pgContainer, err = testutil.CreatePostgresContainer()
 	if err != nil {
-		log.Fatal("Failed:", err)
+		log.Fatal(err)
 	}
 
 	os.Setenv("DB_URL", suite.pgContainer.ConnectionString)
+}
+
+func (suite *AuthTestSuite) TearDownSuite() {
+	if err := suite.tempHS256File.Close(); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := os.Remove(suite.tempHS256File.Name()); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (suite *AuthTestSuite) Test000Register() {
@@ -73,15 +94,22 @@ func (suite *AuthTestSuite) Test002Login() {
 	suite.router.ServeHTTP(rr, req)
 	for _, cookie := range rr.Result().Cookies() {
 		if cookie.Name == "jwt" {
-			suite.jwt = cookie.Value
+			suite.jwtCookie = cookie
 		}
 	}
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.NotEmpty(t, suite.jwt)
+	assert.NotNil(t, suite.jwtCookie)
+}
+
+func (suite *AuthTestSuite) Test003DecodeJwtUsername() {
+	t := suite.T()
+	decodedJwt, err := jwtaux.GetDecodedJwtFromCookieHeader(*suite.jwtCookie)
+
+	require.NoError(t, err)
+	assert.Equal(t, "fabin", decodedJwt["username"])
 }
 
 func TestAuthSuite(t *testing.T) {
-	os.Setenv("GO_TESTING", "")
 	suite.Run(t, new(AuthTestSuite))
 }
