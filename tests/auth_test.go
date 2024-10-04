@@ -123,6 +123,19 @@ func (suite *AuthTestSuite) Test004LoginWithInvalidPassword() {
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
 
+func (suite *AuthTestSuite) Test005RegisterWithMissingParameters() {
+	t := suite.T()
+	rr := httptest.NewRecorder()
+	data := []byte(`{
+		"username": "fabin"
+	}`)
+	req, _ := http.NewRequest("POST", "/auth/register", bytes.NewBuffer(data))
+	suite.router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Equal(t, "Missing fields", rr.Body.String())
+}
+
 func TestAuthSuite(t *testing.T) {
 	suite.Run(t, new(AuthTestSuite))
 }

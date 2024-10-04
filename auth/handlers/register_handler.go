@@ -40,6 +40,12 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params
 		return
 	}
 
+	if allGood := user.Validate(); !allGood {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Missing fields"))
+		return
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		logger.ErrorLog("Failed to hash password:", err)
