@@ -6,13 +6,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func GetDecodedJwtFromCookieHeader(r *http.Request) (jwt.MapClaims, error) {
-	cookie, err := r.Cookie("jwt")
-	if err != nil {
-		return nil, err
-	}
-
-	token, err := GetToken(cookie.Value)
+func GetDecodedJwtFromCookieHeader(jwtCookie http.Cookie) (jwt.MapClaims, error) {
+	token, err := GetToken(jwtCookie.Value)
 	if err != nil {
 		return nil, err
 	}

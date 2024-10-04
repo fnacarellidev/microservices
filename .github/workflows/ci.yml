@@ -1,0 +1,40 @@
+name: Build and test - on CI server
+
+on:
+  push:
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      TESTCONTAINER_DOCKER_NETWORK: tomodachi-testcontainers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.0'
+
+      - name: Setup Docker Network for Testcontainers
+        run: docker network create ${{ env.TESTCONTAINER_DOCKER_NETWORK }}
+
+      - name: Download Modules
+        run: go mod download
+
+      - name: Install Gotestsum
+        run: go install gotest.tools/gotestsum@v1.12.0
+
+      - name: Run Gotestsum
+        run: gotestsum -f github-actions --junitfile reports/report.xml -- ./tests
+
+      - name: Render Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: JEST Tests
+          path: reports/report.xml
+          reporter: jest-junit
