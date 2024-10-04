@@ -23,7 +23,14 @@ func GetRecords(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	defer conn.Close(ctx)
 	queries := pgquery.New(conn)
-	decodedJwt, err := jwtaux.GetDecodedJwtFromCookieHeader(r)
+	jwt, err := r.Cookie("jwt")
+	if err != nil {
+		log.Println("[GetRecords] Failed at jwtaux.GetDecodedJwtFromCookieHeader:", err)
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	decodedJwt, err := jwtaux.GetDecodedJwtFromCookieHeader(*jwt)
 	if err != nil {
 		log.Println("[GetRecords] Failed at jwtaux.GetDecodedJwtFromCookieHeader:", err)
 		w.WriteHeader(http.StatusForbidden)
