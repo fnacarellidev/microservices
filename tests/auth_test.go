@@ -110,6 +110,19 @@ func (suite *AuthTestSuite) Test003DecodeJwtUsername() {
 	assert.Equal(t, "fabin", decodedJwt["username"])
 }
 
+func (suite *AuthTestSuite) Test004LoginWithInvalidPassword() {
+	t := suite.T()
+	rr := httptest.NewRecorder()
+	data := []byte(`{
+		"username": "fabin",
+		"password": "fabin12"
+	}`)
+	req, _ := http.NewRequest("POST", "/auth/login", bytes.NewBuffer(data))
+	suite.router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
 func TestAuthSuite(t *testing.T) {
 	suite.Run(t, new(AuthTestSuite))
 }
